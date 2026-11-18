@@ -1,9 +1,11 @@
 "use client";
 import {
     ReactFlow,
+    ReactFlowProvider,
     Background,
     Controls,
     useNodesState,
+    useReactFlow,
     type Node,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -21,16 +23,29 @@ const startingNodes: Node[] = [
     },
 ];
 
-export default function Canvas() {
+function CanvasInner() {
     const [nodes, setNodes, onNodesChange] = useNodesState(startingNodes);
+    const { screenToFlowPosition } = useReactFlow();
 
     function addChecklist() {
+        // Center of the visible canvas, converted to canvas coordinates
+        const center = screenToFlowPosition({
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+        });
+
+        const width = 250;
+        const height = 250;
+
+        const offset = (nodes.length % 5) * 24;
+
         const newNode: Node = {
             id: crypto.randomUUID(),
             type: "checklist",
-            position: { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 },
+            // Subtract half the size so the node's center lands on the view's center
+            position: { x: center.x - width / 2 + offset, y: center.y - height / 2 + offset},
             data: {},
-            style: { width: 250, height: 250 },
+            style: { width, height },
         };
         setNodes((current) => [...current, newNode]);
     }
@@ -66,5 +81,13 @@ export default function Canvas() {
                 <Controls />
             </ReactFlow>
         </div>
+    );
+}
+
+export default function Canvas() {
+    return (
+        <ReactFlowProvider>
+            <CanvasInner />
+        </ReactFlowProvider>
     );
 }
