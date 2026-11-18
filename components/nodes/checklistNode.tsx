@@ -1,32 +1,47 @@
 "use client";
 import { useState } from "react";
-import { NodeResizer, type NodeProps } from "@xyflow/react";
+import { NodeResizer, useReactFlow, type NodeProps } from "@xyflow/react"; // CHANGED: added useReactFlow
 
 type Item = { id: string; text: string; done: boolean };
+
+// NEW: shape of the data stored on the node
+type ChecklistData = {
+    title?: string;
+    description?: string;
+    items?: Item[];
+};
 
 function autoGrow(el: HTMLTextAreaElement) {
     el.style.height = "auto";
     el.style.height = el.scrollHeight + "px";
 }
 
-export default function ChecklistNode({ selected }: NodeProps) {
-    const [items, setItems] = useState<Item[]>([]);
-    const [text, setText] = useState("");
-    const [title, setTitle] = useState("Checklist");
-    const [description, setDescription] = useState("");
+export default function ChecklistNode({ id, data, selected }: NodeProps) { // CHANGED: added id, data
+    // CHANGED: title, description, and items now come from node data instead of useState
+    const { updateNodeData } = useReactFlow();
+    const d = data as ChecklistData;
+    const title = d.title ?? "Checklist";
+    const description = d.description ?? "";
+    const items = d.items ?? [];
+
+    const [text, setText] = useState(""); // stays local
 
     function addItem() {
         if (!text.trim()) return;
-        setItems([...items, { id: crypto.randomUUID(), text: text.trim(), done: false }]);
+        updateNodeData(id, {
+            items: [...items, { id: crypto.randomUUID(), text: text.trim(), done: false }],
+        });
         setText("");
     }
 
-    function toggle(id: string) {
-        setItems(items.map((i) => (i.id === id ? { ...i, done: !i.done } : i)));
+    function toggle(itemId: string) {
+        updateNodeData(id, {
+            items: items.map((i) => (i.id === itemId ? { ...i, done: !i.done } : i)),
+        });
     }
 
-    function remove(id: string) {
-        setItems(items.filter((i) => i.id !== id));
+    function remove(itemId: string) {
+        updateNodeData(id, { items: items.filter((i) => i.id !== itemId) });
     }
 
     const doneCount = items.filter((i) => i.done).length;
@@ -65,7 +80,7 @@ export default function ChecklistNode({ selected }: NodeProps) {
             value={title}
             ref={(el) => { if (el) autoGrow(el); }}
             onChange={(e) => {
-                setTitle(e.target.value);
+                updateNodeData(id, { title: e.target.value }); // CHANGED: was setTitle
                 autoGrow(e.target);
             }}
             placeholder="Title"
@@ -99,7 +114,7 @@ export default function ChecklistNode({ selected }: NodeProps) {
                         value={description}
                         ref={(el) => { if (el) autoGrow(el); }}
                         onChange={(e) => {
-                            setDescription(e.target.value);
+                            updateNodeData(id, { description: e.target.value }); // CHANGED: was setDescription
                             autoGrow(e.target);
                         }}
                         placeholder="Add a description..."
