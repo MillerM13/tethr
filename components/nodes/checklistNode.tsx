@@ -18,7 +18,7 @@ function autoGrow(el: HTMLTextAreaElement) {
 
 export default function ChecklistNode({ id, data, selected }: NodeProps) { // CHANGED: added id, data
     // CHANGED: title, description, and items now come from node data instead of useState
-    const { updateNodeData } = useReactFlow();
+    const { updateNodeData, deleteElements } = useReactFlow();
     const d = data as ChecklistData;
     const title = d.title ?? "Checklist";
     const description = d.description ?? "";
@@ -107,6 +107,26 @@ export default function ChecklistNode({ id, data, selected }: NodeProps) { // CH
                 {doneCount}/{items.length}
             </span>
                         )}
+
+                        <button
+                            onClick={() => {
+                                if (window.confirm("Delete this checklist?")) {
+                                    deleteElements({ nodes: [{ id }] });
+                                }
+                            }}
+                            aria-label="Delete checklist"
+                            style={{
+                                background: "none",
+                                border: "none",
+                                color: "#9ca3af",
+                                cursor: "pointer",
+                                fontSize: 11,
+                                padding: "0 2px",
+                            }}
+                        >
+                            🗑
+                        </button>
+
                     </div>
                     <textarea
                         className="nodrag"

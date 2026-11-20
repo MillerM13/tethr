@@ -11,8 +11,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import ChecklistNode from "./nodes/checklistNode";
+import NoteNode from "./nodes/note";
 
-const nodeTypes = { checklist: ChecklistNode };
+const nodeTypes = { checklist: ChecklistNode, note: NoteNode};
+
+// FIX: moved out of addChecklist to the top level so the menu can see it
+const nodeOptions = [
+    { type: "checklist", label: "checklist" },
+    { type: "note", label: "note"},
+];
 
 // NEW: storage layout
 //   nodepad-canvases       -> [{ id, name }, ...]
@@ -70,6 +77,7 @@ function saveList(list: CanvasInfo[]) {
 function CanvasInner({ canvasId }: { canvasId: string }) {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [loaded, setLoaded] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false); // FIX: this state was missing
     const { screenToFlowPosition } = useReactFlow();
 
     // Load once after first render (localStorage doesn't exist on the server)
@@ -86,7 +94,8 @@ function CanvasInner({ canvasId }: { canvasId: string }) {
         } catch {}
     }, [nodes, loaded, canvasId]);
 
-    function addChecklist() {
+
+    function addNode(type: string) { // FIX: renamed from addChecklist so it matches the menu
         // Center of the visible canvas, converted to canvas coordinates
         const center = screenToFlowPosition({
             x: window.innerWidth / 2,
@@ -100,7 +109,7 @@ function CanvasInner({ canvasId }: { canvasId: string }) {
 
         const newNode: Node = {
             id: crypto.randomUUID(),
-            type: "checklist",
+            type,
             // Subtract half the size so the node's center lands on the view's center
             position: { x: center.x - width / 2 + offset, y: center.y - height / 2 + offset},
             data: {},
@@ -110,26 +119,48 @@ function CanvasInner({ canvasId }: { canvasId: string }) {
     }
 
     return (
-        <div style={{ width: "100vw", height: "100vh" }}>
-            <button
-                onClick={addChecklist}
-                style={{
-                    position: "absolute",
-                    top: 16,
-                    left: 16,
-                    zIndex: 10,
-                    padding: "8px 14px",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "white",
-                    background: "#6366f1",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                }}
-            >
-                + Checklist
-            </button>
+        <div style={{ width: "100vw", height: "100vh" }}> {/* FIX: restored the outer wrapper */}
+            <div style={{ position: "absolute", top: 16, left: 16, zIndex: 10 }}>
+                <button onClick={() => setMenuOpen(!menuOpen)} style={toolbarButton}>
+                    + Add
+                </button>
+                {menuOpen && (
+                    <div
+                        style={{
+                            marginTop: 6,
+                            background: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 8,
+                            boxShadow: "0 4px 14px rgba(0,0,0,0.18)",
+                            overflow: "hidden",
+                        }}
+                    >
+                        {nodeOptions.map((o) => (
+                            <button
+                                key={o.type}
+                                onClick={() => {
+                                    addNode(o.type);
+                                    setMenuOpen(false);
+                                }}
+                                style={{
+                                    display: "block",
+                                    width: "100%",
+                                    padding: "8px 14px",
+                                    fontSize: 13,
+                                    color: "#1f2937",
+                                    background: "white",
+                                    border: "none",
+                                    textAlign: "left",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                {o.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+            {/* FIX: removed the stray `)}` and the old "+ Checklist" button */}
             <ReactFlow
                 nodes={nodes}
                 onNodesChange={onNodesChange}
